@@ -183,12 +183,7 @@ const FormLayoutsSeparator = () => {
                   input={<OutlinedInput label='Language' id='select-multiple-language' />}
                 >
                   <MenuItem value='English'>English</MenuItem>
-                  <MenuItem value='French'>French</MenuItem>
-                  <MenuItem value='Spanish'>Spanish</MenuItem>
-                  <MenuItem value='Portuguese'>Portuguese</MenuItem>
-                  <MenuItem value='Italian'>Italian</MenuItem>
-                  <MenuItem value='German'>German</MenuItem>
-                  <MenuItem value='Arabic'>Arabic</MenuItem>
+                  <MenuItem value='French'>Khmer</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

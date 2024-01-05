@@ -40,7 +40,7 @@ const FooterIllustrationsV1 = (props: FooterIllustrationsProp) => {
   // ** Vars
   const hidden = useMediaQuery(theme.breakpoints.down('md'))
 
-  if (!hidden) {
+  if (!hidden) { 
     return (
       <Fragment>
         {image1 || <Tree1Img alt='tree' src='/images/pages/auth-v1-tree.png' />}
