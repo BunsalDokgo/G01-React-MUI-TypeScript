@@ -16,7 +16,7 @@ const FooterContent = () => {
         {` by `}
         {/* TO ADD LINK TO SEE ALL MEMBERS */}
         <Link target='_blank' href='#'>
-          Group 01
+          Group 06
         </Link>
       </Typography>
     </Box>
