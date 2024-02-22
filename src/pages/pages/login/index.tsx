@@ -1,9 +1,13 @@
 // ** React Imports
-import { ChangeEvent, MouseEvent, ReactNode, useState } from 'react'
+import { ChangeEvent, MouseEvent, ReactNode, useState, useEffect } from 'react'
 
 // ** Next Imports
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+
+import axios from 'axios'
+
+import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
 
 // ** MUI Components
 import Box from '@mui/material/Box'
@@ -39,9 +43,14 @@ import BlankLayout from 'src/@core/layouts/BlankLayout'
 // ** Demo Imports
 import FooterIllustrationsV1 from 'src/views/pages/auth/FooterIllustration'
 
-interface State {
+interface User {
+  username: string,
   password: string
   showPassword: boolean
+}
+
+interface State extends SnackbarOrigin {
+  open: boolean;
 }
 
 // ** Styled Components
@@ -64,25 +73,83 @@ const FormControlLabel = styled(MuiFormControlLabel)<FormControlLabelProps>(({ t
 
 const LoginPage = () => {
   // ** State
-  const [values, setValues] = useState<State>({
+  const [user, setValues] = useState<User>({
+    username: '',
     password: '',
-    showPassword: false
+    showPassword: false,
   })
 
   // ** Hook
   // const theme = useTheme()
   const router = useRouter()
 
-  const handleChange = (prop: keyof State) => (event: ChangeEvent<HTMLInputElement>) => {
-    setValues({ ...values, [prop]: event.target.value })
+  const handleChange = (prop: keyof User) => (event: ChangeEvent<HTMLInputElement>) => {
+    setValues({ ...user, [prop]: event.target.value })
   }
 
   const handleClickShowPassword = () => {
-    setValues({ ...values, showPassword: !values.showPassword })
+    setValues({ ...user, showPassword: !user.showPassword })
   }
 
   const handleMouseDownPassword = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+  }
+
+  const [state, setState] = useState<State>({
+    open: false,
+    vertical: 'top',
+    horizontal: 'center',
+  });
+  const { vertical, horizontal, open } = state;
+
+  useEffect(() => {
+    setTimeout(() => {
+      setState({ ...state, open: false });
+    }, 5000);
+  }, [state]);
+
+  const handleClick = (newState: SnackbarOrigin) => () => {
+    setState({ ...newState, open: true });
+  };
+
+  const [isError, setIsError] = useState<boolean>(false)
+  const [resMessage, setResMessage] = useState<string>('')
+
+  const handleClose = () => {
+    setState({ ...state, open: false });
+  };
+
+  const errSnackbarBackgroundColor = {
+    backgroundColor: '#EF4040',
+  };
+
+  const successSnackbarBackgroundColor = {
+    backgroundColor: '#74E291',
+  }
+
+  const onLogin = (event: MouseEvent<HTMLFormElement>) => {
+    event.preventDefault();
+  
+    const dataToSend = {
+      "username": user.username,
+      "password": user.password
+    };
+
+    axios.post("http://localhost:8080/api/auth/login", dataToSend)
+      .then(res => {
+        setResMessage(res.data.message);
+
+        setIsError(false);
+
+        // Wait for 1.5 seconds before redirecting to /pages/login
+        setTimeout(() => {
+          router.push('/');
+        }, 1500);
+      })
+      .catch(error => {
+        setIsError(true);
+        setResMessage(error.response.data.message);
+      });
   }
 
   return (
@@ -101,7 +168,7 @@ const LoginPage = () => {
                 fontSize: '1.5rem !important'
               }}
             >
-              {themeConfig.templateName}
+              {themeConfig.templateName} 
             </Typography>
           </Box>
           <Box sx={{ mb: 6 }}>
@@ -110,16 +177,16 @@ const LoginPage = () => {
             </Typography>
             <Typography variant='body2'>Please sign-in to your account and start the adventure</Typography>
           </Box>
-          <form noValidate autoComplete='off' onSubmit={e => e.preventDefault()}>
-            <TextField autoFocus fullWidth id='email' label='Email' sx={{ marginBottom: 4 }} />
+          <form noValidate autoComplete='off' onSubmit={onLogin}>
+            <TextField autoFocus fullWidth id='username' label='username' sx={{ marginBottom: 4 }} onChange={handleChange('username')}/>
             <FormControl fullWidth>
               <InputLabel htmlFor='auth-login-password'>Password</InputLabel>
               <OutlinedInput
                 label='Password'
-                value={values.password}
+                value={user.password}
                 id='auth-login-password'
                 onChange={handleChange('password')}
-                type={values.showPassword ? 'text' : 'password'}
+                type={user.showPassword ? 'text' : 'password'}
                 endAdornment={
                   <InputAdornment position='end'>
                     <IconButton
@@ -128,7 +195,7 @@ const LoginPage = () => {
                       onMouseDown={handleMouseDownPassword}
                       aria-label='toggle password visibility'
                     >
-                      {values.showPassword ? <EyeOutline /> : <EyeOffOutline />}
+                      {user.showPassword ? <EyeOutline /> : <EyeOffOutline />}
                     </IconButton>
                   </InputAdornment>
                 }
@@ -147,9 +214,20 @@ const LoginPage = () => {
               size='large'
               variant='contained'
               sx={{ marginBottom: 7 }}
-              onClick={() => router.push('/')}
+              onClick={handleClick({ vertical: 'top', horizontal: 'right' })}
+              type='submit'
             >
               Login
+              <Snackbar
+                anchorOrigin={{ vertical, horizontal }}
+                open={open}
+                onClose={handleClose}
+                message={resMessage}
+                key={vertical + horizontal}
+                ContentProps={{
+                  style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
+                }}
+              />
             </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Typography variant='body2' sx={{ marginRight: 2 }}>

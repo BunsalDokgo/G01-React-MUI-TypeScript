@@ -58,7 +58,7 @@ const TabInfo = () => {
             </DatePickerWrapper>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField fullWidth type='number' label='Phone' placeholder='(123) 456-7890' />
+            <TextField fullWidth type='number' label='Phone' placeholder='(855) 81 327 344' />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField

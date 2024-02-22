@@ -1,8 +1,12 @@
 // ** React Imports
-import { useState, Fragment, ChangeEvent, MouseEvent, ReactNode } from 'react'
+import { useState, Fragment, ChangeEvent, MouseEvent, ReactNode, useEffect } from 'react'
 
 // ** Next Imports
 import Link from 'next/link'
+
+import { useRouter } from 'next/router'
+
+import axios from 'axios'
 
 // ** MUI Components
 import Box from '@mui/material/Box'
@@ -21,6 +25,8 @@ import MuiCard, { CardProps } from '@mui/material/Card'
 import InputAdornment from '@mui/material/InputAdornment'
 import MuiFormControlLabel, { FormControlLabelProps } from '@mui/material/FormControlLabel'
 
+import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
+
 // ** Icons Imports
 import Google from 'mdi-material-ui/Google'
 import Github from 'mdi-material-ui/Github'
@@ -38,10 +44,18 @@ import BlankLayout from 'src/@core/layouts/BlankLayout'
 // ** Demo Imports
 import FooterIllustrationsV1 from 'src/views/pages/auth/FooterIllustration'
 
-interface State {
+interface User {
+  username: string,
+  email: string,
   password: string
   showPassword: boolean
 }
+
+interface State extends SnackbarOrigin {
+  open: boolean;
+}
+
+// const API_URL = process.env.API_URL
 
 // ** Styled Components
 const Card = styled(MuiCard)<CardProps>(({ theme }) => ({
@@ -65,23 +79,97 @@ const FormControlLabel = styled(MuiFormControlLabel)<FormControlLabelProps>(({ t
 
 const RegisterPage = () => {
   // ** States
-  const [values, setValues] = useState<State>({
+  const [user, setValues] = useState<User>({
+    username: '',
+    email: '',
     password: '',
     showPassword: false
   })
+  
+  const [state, setState] = useState<State>({
+    open: false,
+    vertical: 'top',
+    horizontal: 'center',
+  });
+  const { vertical, horizontal, open } = state;
+
+  const handleClick = (newState: SnackbarOrigin) => () => {
+    setState({ ...newState, open: true });
+  };
+
+  const [isError, setIsError] = useState<boolean>(false)
+  const [resMessage, setResMessage] = useState<string>('')
+
+  const handleClose = () => {
+    setState({ ...state, open: false });
+  };
+
+  const errSnackbarBackgroundColor = {
+    backgroundColor: '#EF4040',
+  };
+
+  const successSnackbarBackgroundColor = {
+    backgroundColor: '#74E291',
+  }
 
   // ** Hook
   // const theme = useTheme()
 
-  const handleChange = (prop: keyof State) => (event: ChangeEvent<HTMLInputElement>) => {
-    setValues({ ...values, [prop]: event.target.value })
+  const handleChange = (prop: keyof User) => (event: ChangeEvent<HTMLInputElement>) => {
+    setValues({ ...user, [prop]: event.target.value })
   }
   const handleClickShowPassword = () => {
-    setValues({ ...values, showPassword: !values.showPassword })
+    setValues({ ...user, showPassword: !user.showPassword })
   }
   const handleMouseDownPassword = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
   }
+
+  const router = useRouter()
+
+  useEffect(() => {
+    setTimeout(() => {
+      setState({ ...state, open: false });
+    }, 5000);
+  }, [state]);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    return emailRegex.test(email);
+  };
+
+  const onRegister = (event: MouseEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const isEmailValid = validateEmail(user.email);
+  
+    if (isEmailValid) {
+      const dataToSend = {
+        "username": user.username,
+        "email": user.email,
+        "password": user.password
+      };
+  
+      axios.post("http://localhost:8080/api/auth/signup", dataToSend)
+        .then(res => {
+          setResMessage(res.data.message);
+  
+          setIsError(false);
+  
+          // Wait for 1.5 seconds before redirecting to /pages/login
+          setTimeout(() => {
+            router.push('/pages/login');
+          }, 1500);
+        })
+        .catch(error => {
+          setIsError(true);
+          setResMessage(error.message);
+        });
+    } else {
+      setIsError(true);
+      setResMessage('Invalid email address, please try again !');
+    }
+  };
 
   return (
     <Box className='content-center'>
@@ -108,17 +196,17 @@ const RegisterPage = () => {
             </Typography>
             <Typography variant='body2'>Make your app management easy and fun!</Typography>
           </Box>
-          <form noValidate autoComplete='off' onSubmit={e => e.preventDefault()}>
-            <TextField autoFocus fullWidth id='username' label='Username' sx={{ marginBottom: 4 }} />
-            <TextField fullWidth type='email' label='Email' sx={{ marginBottom: 4 }} />
+          <form noValidate autoComplete='off' onSubmit={onRegister}>
+            <TextField autoFocus fullWidth id='username' label='Username' sx={{ marginBottom: 4 }} onChange={handleChange('username')} />
+            <TextField fullWidth type='email' label='Email' sx={{ marginBottom: 4 }} onChange={handleChange('email')} />
             <FormControl fullWidth>
               <InputLabel htmlFor='auth-register-password'>Password</InputLabel>
               <OutlinedInput
                 label='Password'
-                value={values.password}
+                value={user.password}
                 id='auth-register-password'
                 onChange={handleChange('password')}
-                type={values.showPassword ? 'text' : 'password'}
+                type={user.showPassword ? 'text' : 'password'}
                 endAdornment={
                   <InputAdornment position='end'>
                     <IconButton
@@ -127,7 +215,7 @@ const RegisterPage = () => {
                       onMouseDown={handleMouseDownPassword}
                       aria-label='toggle password visibility'
                     >
-                      {values.showPassword ? <EyeOutline fontSize='small' /> : <EyeOffOutline fontSize='small' />}
+                      {user.showPassword ? <EyeOutline fontSize='small' /> : <EyeOffOutline fontSize='small' />}
                     </IconButton>
                   </InputAdornment>
                 }
@@ -146,8 +234,18 @@ const RegisterPage = () => {
                 </Fragment>
               }
             />
-            <Button fullWidth size='large' type='submit' variant='contained' sx={{ marginBottom: 7 }}>
+            <Button fullWidth size='large' type='submit' variant='contained' sx={{ marginBottom: 7 }} onClick={handleClick({ vertical: 'top', horizontal: 'right' })}>
               Sign up
+              <Snackbar
+                anchorOrigin={{ vertical, horizontal }}
+                open={open}
+                onClose={handleClose}
+                message={resMessage}
+                key={vertical + horizontal}
+                ContentProps={{
+                  style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
+                }}
+              />
             </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Typography variant='body2' sx={{ marginRight: 2 }}>
