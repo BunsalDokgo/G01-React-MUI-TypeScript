@@ -1,5 +1,5 @@
 // ** React Imports
-import { ChangeEvent, MouseEvent, useState } from 'react'
+import { ChangeEvent, MouseEvent, useState, useEffect } from 'react'
 
 // ** MUI Imports
 import Box from '@mui/material/Box'
@@ -21,7 +21,10 @@ import KeyOutline from 'mdi-material-ui/KeyOutline'
 import EyeOffOutline from 'mdi-material-ui/EyeOffOutline'
 import LockOpenOutline from 'mdi-material-ui/LockOpenOutline'
 
-interface State {
+import axios from 'axios';
+import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
+
+interface InfoState {
   newPassword: string
   currentPassword: string
   showNewPassword: boolean
@@ -30,9 +33,13 @@ interface State {
   showConfirmNewPassword: boolean
 }
 
+interface State extends SnackbarOrigin {
+  open: boolean;
+}
+
 const TabSecurity = () => {
   // ** States
-  const [values, setValues] = useState<State>({
+  const [values, setValues] = useState<InfoState>({
     newPassword: '',
     currentPassword: '',
     showNewPassword: false,
@@ -42,7 +49,7 @@ const TabSecurity = () => {
   })
 
   // Handle Current Password
-  const handleCurrentPasswordChange = (prop: keyof State) => (event: ChangeEvent<HTMLInputElement>) => {
+  const handleCurrentPasswordChange = (prop: keyof InfoState) => (event: ChangeEvent<HTMLInputElement>) => {
     setValues({ ...values, [prop]: event.target.value })
   }
   const handleClickShowCurrentPassword = () => {
@@ -53,7 +60,7 @@ const TabSecurity = () => {
   }
 
   // Handle New Password
-  const handleNewPasswordChange = (prop: keyof State) => (event: ChangeEvent<HTMLInputElement>) => {
+  const handleNewPasswordChange = (prop: keyof InfoState) => (event: ChangeEvent<HTMLInputElement>) => {
     setValues({ ...values, [prop]: event.target.value })
   }
   const handleClickShowNewPassword = () => {
@@ -64,7 +71,7 @@ const TabSecurity = () => {
   }
 
   // Handle Confirm New Password
-  const handleConfirmNewPasswordChange = (prop: keyof State) => (event: ChangeEvent<HTMLInputElement>) => {
+  const handleConfirmNewPasswordChange = (prop: keyof InfoState) => (event: ChangeEvent<HTMLInputElement>) => {
     setValues({ ...values, [prop]: event.target.value })
   }
   const handleClickShowConfirmNewPassword = () => {
@@ -74,8 +81,66 @@ const TabSecurity = () => {
     event.preventDefault()
   }
 
+  const [state, setState] = useState<State>({
+    open: false,
+    vertical: 'top',
+    horizontal: 'center',
+  });
+
+  const { vertical, horizontal, open } = state;
+
+  useEffect(() => {
+    setTimeout(() => {
+      setState({ ...state, open: false });
+    }, 5000);
+  }, [state]);
+
+  const handleClick = (newState: SnackbarOrigin) => () => {
+    setState({ ...newState, open: true });
+  };
+
+  const [isError, setIsError] = useState<boolean>(false)
+  const [resMessage, setResMessage] = useState<string>('')
+
+  const handleClose = () => {
+    setState({ ...state, open: false });
+  };
+
+  const errSnackbarBackgroundColor = {
+    backgroundColor: '#EF4040',
+  };
+
+  const successSnackbarBackgroundColor = {
+    backgroundColor: '#74E291',
+  }
+
+  const onResetPassword = (event: MouseEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    
+    const dataToSend = {
+      id: localStorage.getItem('userId'),
+      currentPwd: values.currentPassword,
+      newPwd: values.newPassword,
+      confirmNewPwd: values.confirmNewPassword,
+    }
+
+    axios.put('http://localhost:8080/api/auth/reset-password', dataToSend)
+      .then(({ data }: any) => {
+        setResMessage(data?.message);
+        setIsError(false);
+        setTimeout(() => {
+          setValues({ ...values, currentPassword: '', newPassword: '', confirmNewPassword: '' });
+        }, 1000);
+      })
+      .catch((err) => {
+        const message = err.response.data.message;
+        setIsError(true);
+        setResMessage(message)
+      })
+  }
+
   return (
-    <form>
+    <form noValidate autoComplete='off' onSubmit={onResetPassword} >
       <CardContent sx={{ paddingBottom: 0 }}>
         <Grid container spacing={5}>
           <Grid item xs={12} sm={6}>
@@ -203,8 +268,23 @@ const TabSecurity = () => {
         </Box>
 
         <Box sx={{ mt: 11 }}>
-          <Button variant='contained' sx={{ marginRight: 3.5 }}>
+          <Button 
+            variant='contained' 
+            sx={{ marginRight: 3.5 }}  
+            type='submit' 
+            onClick={handleClick({ vertical: 'top', horizontal: 'right' })}
+          >
             Save Changes
+            <Snackbar
+              anchorOrigin={{ vertical, horizontal }}
+              open={open}
+              onClose={handleClose}
+              message={resMessage}
+              key={vertical + horizontal}
+              ContentProps={{
+                style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
+              }}
+            />
           </Button>
           <Button
             type='reset'

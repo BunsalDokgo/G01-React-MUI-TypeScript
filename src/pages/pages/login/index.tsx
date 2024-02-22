@@ -141,7 +141,10 @@ const LoginPage = () => {
 
         setIsError(false);
 
-        // Wait for 1.5 seconds before redirecting to /pages/login
+        localStorage.setItem('userId', res.data.id);
+        localStorage.setItem('username', res.data.username);
+        localStorage.setItem('email', res.data.email);
+
         setTimeout(() => {
           router.push('/');
         }, 1500);
