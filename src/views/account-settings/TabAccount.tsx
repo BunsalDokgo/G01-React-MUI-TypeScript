@@ -1,5 +1,5 @@
 // ** React Imports
-import { useState, ElementType, ChangeEvent, SyntheticEvent } from 'react'
+import { useState, ElementType, ChangeEvent, SyntheticEvent, useEffect } from 'react'
 
 // ** MUI Imports
 import Box from '@mui/material/Box'
@@ -17,6 +17,9 @@ import IconButton from '@mui/material/IconButton'
 import CardContent from '@mui/material/CardContent'
 import FormControl from '@mui/material/FormControl'
 import Button, { ButtonProps } from '@mui/material/Button'
+
+import axios from 'axios';
+import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
 
 // ** Icons Imports
 import Close from 'mdi-material-ui/Close'
@@ -45,20 +48,83 @@ const ResetButtonStyled = styled(Button)<ButtonProps>(({ theme }) => ({
   }
 }))
 
+interface State extends SnackbarOrigin {
+  open: boolean;
+}
+
 const TabAccount = () => {
   // ** State
   const [openAlert, setOpenAlert] = useState<boolean>(true)
   const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
 
-  const onChange = (file: ChangeEvent) => {
-    const reader = new FileReader()
-    const { files } = file.target as HTMLInputElement
-    if (files && files.length !== 0) {
-      reader.onload = () => setImgSrc(reader.result as string)
+  const [state, setState] = useState<State>({
+    open: false,
+    vertical: 'top',
+    horizontal: 'center',
+  });
+  const { vertical, horizontal, open } = state;
+  
+  useEffect(() => {
+    setTimeout(() => {
+      setState({ ...state, open: false });
+    }, 5000);
+  }, [state]);
+  
+  const handleClick = (newState: SnackbarOrigin) => {
+    setState({ ...newState, open: true });
+  };
+  
+  const [isError, setIsError] = useState<boolean>(false);
+  const [resMessage, setResMessage] = useState<string>('');
+  
+  const handleClose = () => {
+    setState({ ...state, open: false });
+  };
+  
+  const errSnackbarBackgroundColor = {
+    backgroundColor: '#EF4040',
+  };
+  
+  const successSnackbarBackgroundColor = {
+    backgroundColor: '#74E291',
+  };
 
+  const onChange = (file: ChangeEvent) => {
+    const reader = new FileReader();
+    const { files } = file.target as HTMLInputElement;
+    if (files && files.length !== 0) {
+      reader.onload = async () => {
+        setImgSrc(reader.result as string);
+        
+        const id = localStorage.getItem('userId');
+  
+        const formData = new FormData();
+        formData.append('image', files[0]);
+        formData.append('id', id as any);
+  
+        handleClick({ vertical: 'top', horizontal: 'right' });
+  
+        try {
+          await axios.post('http://localhost:8080/api/auth/upload-profile', formData)
+            .then(({ data }: any) => {
+              console.log({ data });
+              setResMessage(data?.message);
+              setIsError(false);
+            })
+            .catch((err): any => {
+              const message = err.response.data.message;
+              setIsError(true);
+              setResMessage(message)
+            })
+        } catch (err: any) {
+          setIsError(true);
+          setResMessage(err);
+        }
+      };
+  
       reader.readAsDataURL(files[0])
     }
-  }
+  };
 
   return (
     <CardContent>
@@ -78,6 +144,16 @@ const TabAccount = () => {
                     id='account-settings-upload-image'
                   />
                 </ButtonStyled>
+                <Snackbar
+                  anchorOrigin={{ vertical, horizontal }}
+                  open={open}
+                  onClose={handleClose}
+                  message={resMessage}
+                  key={vertical + horizontal}
+                  ContentProps={{
+                    style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
+                  }}
+                />
                 <ResetButtonStyled color='error' variant='outlined' onClick={() => setImgSrc('/images/avatars/1.png')}>
                   Reset
                 </ResetButtonStyled>
