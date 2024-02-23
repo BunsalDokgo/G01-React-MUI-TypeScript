@@ -107,14 +107,15 @@ const TabAccount = () => {
         try {
           await axios.post('http://localhost:8080/api/auth/upload-profile', formData)
             .then(({ data }: any) => {
-              console.log({ data });
+              localStorage.setItem('imagePath', data.imagePath);
               setResMessage(data?.message);
               setIsError(false);
             })
             .catch((err): any => {
               const message = err.response.data.message;
+              if (!message) setResMessage('Invalid file type, only JPEG and PNG is allowed!');
+              else setResMessage(message);
               setIsError(true);
-              setResMessage(message)
             })
         } catch (err: any) {
           setIsError(true);
