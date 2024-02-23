@@ -55,7 +55,7 @@ interface State extends SnackbarOrigin {
 const TabAccount = () => {
   // ** State
   const [openAlert, setOpenAlert] = useState<boolean>(true)
-  const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
+  const [imgSrc, setImgSrc] = useState('/images/avatars/1.png');
 
   const [state, setState] = useState<State>({
     open: false,
@@ -69,6 +69,10 @@ const TabAccount = () => {
       setState({ ...state, open: false });
     }, 5000);
   }, [state]);
+
+  useEffect(() => {
+    getProfile();
+  }, []);
   
   const handleClick = (newState: SnackbarOrigin) => {
     setState({ ...newState, open: true });
@@ -87,6 +91,21 @@ const TabAccount = () => {
   
   const successSnackbarBackgroundColor = {
     backgroundColor: '#74E291',
+  };
+
+  const getProfile = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await axios.get(`http://localhost:8080/api/auth/get-profile/${userId}`);
+      const { data } = response;
+  
+      if (data && data.imagePath) {
+        const imageURL = new URL(data.imagePath, 'http://localhost:8080').href;
+        setImgSrc(imageURL);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const onChange = (file: ChangeEvent) => {
@@ -110,6 +129,9 @@ const TabAccount = () => {
               localStorage.setItem('imagePath', data.imagePath);
               setResMessage(data?.message);
               setIsError(false);
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
             })
             .catch((err): any => {
               const message = err.response.data.message;
@@ -155,9 +177,6 @@ const TabAccount = () => {
                     style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
                   }}
                 />
-                <ResetButtonStyled color='error' variant='outlined' onClick={() => setImgSrc('/images/avatars/1.png')}>
-                  Reset
-                </ResetButtonStyled>
                 <Typography variant='body2' sx={{ marginTop: 5 }}>
                   Allowed PNG or JPEG. Max size of 800K.
                 </Typography>

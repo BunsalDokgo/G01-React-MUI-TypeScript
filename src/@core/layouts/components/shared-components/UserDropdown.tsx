@@ -1,5 +1,5 @@
 // ** React Imports
-import { useState, SyntheticEvent, Fragment } from 'react'
+import React, { useState, SyntheticEvent, Fragment, useEffect } from 'react'
 
 // ** Next Import
 import { useRouter } from 'next/router'
@@ -23,6 +23,8 @@ import AccountOutline from 'mdi-material-ui/AccountOutline'
 import MessageOutline from 'mdi-material-ui/MessageOutline'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 
+import axios from 'axios';
+
 // ** Styled Components
 const BadgeContentSpan = styled('span')(({ theme }) => ({
   width: 8,
@@ -35,6 +37,7 @@ const BadgeContentSpan = styled('span')(({ theme }) => ({
 const UserDropdown = () => {
   // ** States
   const [anchorEl, setAnchorEl] = useState<Element | null>(null)
+  const [imgSrc, setImgSrc] = useState('/images/avatars/1.png');
 
   // ** Hooks
   const router = useRouter()
@@ -63,6 +66,25 @@ const UserDropdown = () => {
       color: 'text.secondary'
     }
   }
+  
+  useEffect(() => {
+    getProfile();
+  }, []);
+  
+  const getProfile = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await axios.get(`http://localhost:8080/api/auth/get-profile/${userId}`);
+      const { data } = response;
+  
+      if (data && data.imagePath) {
+        const imageURL = new URL(data.imagePath, 'http://localhost:8080').href;
+        setImgSrc(imageURL);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <Fragment>
@@ -77,7 +99,7 @@ const UserDropdown = () => {
           alt='Bunsal'
           onClick={handleDropdownOpen}
           sx={{ width: 40, height: 40 }}
-          src='/images/avatars/1.png'
+          src={imgSrc}
         />
       </Badge>
       <Menu

@@ -138,12 +138,12 @@ const LoginPage = () => {
     axios.post("http://localhost:8080/api/auth/login", dataToSend)
       .then(res => {
         setResMessage(res.data.message);
-
         setIsError(false);
 
         localStorage.setItem('userId', res.data.id);
         localStorage.setItem('username', res.data.username);
         localStorage.setItem('email', res.data.email);
+        localStorage.setItem('imagePath', res.data.imagePath);
 
         setTimeout(() => {
           router.push('/');
