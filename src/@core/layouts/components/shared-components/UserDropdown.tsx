@@ -25,6 +25,8 @@ import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 
 import axios from 'axios';
 
+import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
+
 // ** Styled Components
 const BadgeContentSpan = styled('span')(({ theme }) => ({
   width: 8,
@@ -34,10 +36,15 @@ const BadgeContentSpan = styled('span')(({ theme }) => ({
   boxShadow: `0 0 0 2px ${theme.palette.background.paper}`
 }))
 
+interface State extends SnackbarOrigin {
+  open: boolean;
+}
+
 const UserDropdown = () => {
   // ** States
   const [anchorEl, setAnchorEl] = useState<Element | null>(null)
   const [imgSrc, setImgSrc] = useState('/images/avatars/1.png');
+  const [username, setUsername] = useState('');
 
   // ** Hooks
   const router = useRouter()
@@ -46,11 +53,19 @@ const UserDropdown = () => {
     setAnchorEl(event.currentTarget)
   }
 
-  const handleDropdownClose = (url?: string) => {
+  const handleDropdownClose = () => {
+    setAnchorEl(null);
+  }
+
+  const handleDropdownCloseLogout = (url: string) => {
+    localStorage.clear();
     if (url) {
-      router.push(url)
+      onLogout();
+      handleClick({ vertical: 'top', horizontal: 'right' })();
+      setTimeout(() => {
+        router.push(url)
+      }, 1500);
     }
-    setAnchorEl(null)
   }
 
   const styles = {
@@ -66,7 +81,7 @@ const UserDropdown = () => {
       color: 'text.secondary'
     }
   }
-  
+
   useEffect(() => {
     getProfile();
   }, []);
@@ -80,11 +95,56 @@ const UserDropdown = () => {
       if (data && data.imagePath) {
         const imageURL = new URL(data.imagePath, 'http://localhost:8080').href;
         setImgSrc(imageURL);
+        setUsername(data.username);
       }
     } catch (error) {
       console.log(error);
     }
   };
+
+  const onLogout = async () => {
+    axios.post('http://localhost:8080/api/auth/signout')
+      .then(({ data }: any) => {
+        setResMessage(data.message);
+        setIsError(false);
+      })
+      .catch((err: any) => {
+        setIsError(true);
+        setResMessage(err.response.data.message);
+      })
+  }
+
+  const [state, setState] = useState<State>({
+    open: false,
+    vertical: 'top',
+    horizontal: 'center',
+  });
+  const { vertical, horizontal, open } = state;
+
+  useEffect(() => {
+    setTimeout(() => {
+      setState({ ...state, open: false });
+    }, 5000);
+  }, [state]);
+
+  const handleClick = (newState: SnackbarOrigin) => () => {
+    setState({ ...newState, open: true });
+  };
+
+  const [isError, setIsError] = useState<boolean>(false)
+  const [resMessage, setResMessage] = useState<string>('')
+
+  const handleClose = () => {
+    setState({ ...state, open: false });
+  };
+
+  const errSnackbarBackgroundColor = {
+    backgroundColor: '#EF4040',
+  };
+
+  const successSnackbarBackgroundColor = {
+    backgroundColor: '#74E291',
+  }
 
   return (
     <Fragment>
@@ -117,12 +177,12 @@ const UserDropdown = () => {
               badgeContent={<BadgeContentSpan />}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
-              <Avatar alt='Bunsal' src='/images/avatars/1.png' sx={{ width: '2.5rem', height: '2.5rem' }} />
+              <Avatar alt='Bunsal' src={imgSrc} sx={{ width: '2.5rem', height: '2.5rem' }} />
             </Badge>
             <Box sx={{ display: 'flex', marginLeft: 3, alignItems: 'flex-start', flexDirection: 'column' }}>
-              <Typography sx={{ fontWeight: 600 }}>Bunsal</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{username}</Typography>
               <Typography variant='body2' sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
-                Admin
+                {username === 'Admin' ? 'Admin' : 'User'}
               </Typography>
             </Box>
           </Box>
@@ -166,7 +226,17 @@ const UserDropdown = () => {
           </Box>
         </MenuItem>
         <Divider />
-        <MenuItem sx={{ py: 2 }} onClick={() => handleDropdownClose('/pages/login')}>
+        <MenuItem sx={{ py: 2 }} onClick={() => handleDropdownCloseLogout('/pages/login')}>
+          <Snackbar
+            anchorOrigin={{ vertical, horizontal }}
+            open={open}
+            onClose={handleClose}
+            message={resMessage}
+            key={vertical + horizontal}
+            ContentProps={{
+              style: isError ? errSnackbarBackgroundColor : successSnackbarBackgroundColor
+            }}
+          />
           <LogoutVariant sx={{ marginRight: 2, fontSize: '1.375rem', color: 'text.secondary' }} />
           Logout
         </MenuItem>
