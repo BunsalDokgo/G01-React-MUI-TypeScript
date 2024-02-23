@@ -135,7 +135,10 @@ const TabAccount = () => {
             })
             .catch((err): any => {
               const message = err.response.data.message;
-              if (!message) setResMessage('Invalid file type, only JPEG and PNG is allowed!');
+              if (!message) {
+                setResMessage('Invalid file type, only JPEG and PNG is allowed!');
+                setImgSrc('/images/avatars/1.png');
+              }
               else setResMessage(message);
               setIsError(true);
             })
